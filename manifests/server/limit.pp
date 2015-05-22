@@ -21,14 +21,18 @@ define openldap::server::limit(
     Class['openldap::server']
   }
 
-  $limits = join($limit, ' ')
+  if (is_array($limit)) {
+    $limits = $limit
+  } else {
+    $limits = split($limit, ' ')
+  }
   openldap_limit { "${who} on ${suffix}":
     ensure   => $ensure,
     position => $position,
     provider => $::openldap::server::provider,
     target   => $::openldap::server::conffile,
     who      => $who,
-    limit    => $limit,
+    limit    => $limits,
     suffix   => $suffix,
   }
 }
