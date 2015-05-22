@@ -75,8 +75,17 @@ Puppet::Type.type(:openldap_limit).provide(:olc) do
     @property_flush={}
   end
 
+  def lastPost(suffix)
+    slapcat(
+      '-b',
+      'cn=config',
+      '-H',
+      "ldap:///???(olcSuffix=#{suffix})"
+    ).split("\n").select{|line| line =~ /^olcLimits:/}.length
+  end
+
   def create
-    position = "{#{resource[:position]}}" if resource[:position]
+    position = resource[:position] ? "{#{resource[:position]}}" : "{#{lastPost(resource[:suffix])}}"
     t = Tempfile.new('openldap_access')
     t << "dn: #{getDn(resource[:suffix])}\n"
     t << "add: olcLimits\n"
