@@ -25,6 +25,7 @@ Puppet::Type.type(:openldap_database).provide(:olc) do
       directory = nil
       rootdn = nil
       rootpw = nil
+      limits = nil
       paragraph.gsub("\n ", "").split("\n").collect do |line|
         case line
         when /^olcDatabase: /
@@ -37,6 +38,11 @@ Puppet::Type.type(:openldap_database).provide(:olc) do
           rootpw = Base64.decode64(line.split(' ')[1])
         when /^olcSuffix: /
           suffix = line.split(' ')[1]
+        when /^olcLimits: /
+          Puppet.debug "LIMIT: #{line}"
+          foo, limit = line.match(/^olcLimits:\s+(\{\d+\})?(.+)$/).captures
+          limits = Array.new if !limits
+          limits.push(limit)
         end
       end
       new(
@@ -47,7 +53,8 @@ Puppet::Type.type(:openldap_database).provide(:olc) do
         :backend   => backend,
         :directory => directory,
         :rootdn    => rootdn,
-        :rootpw    => rootpw
+        :rootpw    => rootpw,
+        :limits    => limits
       )
     end
   end
@@ -127,6 +134,7 @@ Puppet::Type.type(:openldap_database).provide(:olc) do
     t << "olcRootPW: #{resource[:rootpw]}\n" if resource[:rootpw]
     t << "olcSuffix: #{resource[:suffix]}\n" if resource[:suffix]
     t << "olcDbIndex: objectClass eq\n"
+    t << "#{resource[:limits].collect { |x| "olcLimits: #{x}" }.join("\n")}\n" if resource[:limits]
     t << "olcAccess: to * by dn.exact=gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth manage by * break\n"
     t << "olcAccess: to attrs=userPassword\n"
     t << "  by self write\n"
@@ -180,6 +188,10 @@ Puppet::Type.type(:openldap_database).provide(:olc) do
     @property_flush[:suffix] = value
   end
 
+  def limits=(value)
+    @property_flush[:limits] = value
+  end
+
   def flush
     if not @property_flush.empty?
       t = Tempfile.new('openldap_database')
@@ -189,6 +201,10 @@ Puppet::Type.type(:openldap_database).provide(:olc) do
       t << "replace: olcRootDN\nolcRootDN: #{resource[:rootdn]}\n-\n" if @property_flush[:rootdn]
       t << "replace: olcRootPW\nolcRootPW: #{resource[:rootpw]}\n-\n" if @property_flush[:rootpw]
       t << "replace: olcSuffix\nolcSuffix: #{resource[:suffix]}\n-\n" if @property_flush[:suffix]
+      if @property_flush[:limits]
+        t << "delete: olcLimits\n-\n"
+        t << "add: olcLimits\n#{@property_flush[:limits].collect { |x| "olcLimits: #{x}" }.join("\n")}\n-\n" if @property_flush[:limits]
+      end
       t.close
       Puppet.debug(IO.read t.path)
       begin

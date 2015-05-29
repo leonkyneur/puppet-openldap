@@ -108,4 +108,18 @@ Puppet::Type.newtype(:openldap_database) do
     newvalues(:true, :false)
     defaultto(:true)
   end
+
+  newproperty(:limits, :array_matching => :all) do
+    desc "Limits the number entries returned and/or the time spent by a request"
+
+    def insync?(is)
+      is == should
+    end
+
+    validate do |value|
+      if value !~ /^(\*|anonymous|users|self|(dn(\.\S+)?=\S+)|(dn\.\S+=\S+)|(group(\/oc(\/at)?)?=\S+))(\s+((time(\.(soft|hard))?=((\d+)|unlimited))|(size(\.(soft|hard|unchecked))?=((\d+)|unlimited))|(size\.pr=((\d+)|noEstimate|unlimited))|(size.prtotal=((\d+)|unlimited|disabled))))+$/
+        raise ArgumentError, "Invalid limit: #{value}\nLimit values must be according to syntax described at http://www.openldap.org/doc/admin24/limits.html#Per-Database%20Limits"
+      end
+    end
+  end
 end

@@ -7,6 +7,7 @@ define openldap::server::database(
   $rootdn    = undef,
   $rootpw    = undef,
   $initdb    = undef,
+  $limits    = undef,
 ) {
 
   if ! defined(Class['openldap::server']) {
@@ -46,6 +47,7 @@ define openldap::server::database(
     rootdn    => $rootdn,
     rootpw    => $rootpw,
     initdb    => $initdb,
+    limits    => $limits,
   }
 
 }
