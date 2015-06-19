@@ -41,7 +41,7 @@ Puppet::Type.type(:openldap_database).provide(:olc) do
         when /^olcLimits: /
           Puppet.debug "LIMIT: #{line}"
           foo, limit = line.match(/^olcLimits:\s+(\{\d+\})?(.+)$/).captures
-          limits = Array.new if !limits
+          limits = [] unless limits
           limits.push(limit)
         end
       end
